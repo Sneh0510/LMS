@@ -1,0 +1,43 @@
+1). give me this is simple classes so that i can directly put them in my project rather then putting them here in config file :  fontSize: {
+        'course-details-heading-small': ['26px', '36px'],
+        'course-details-heading-large': ['36px', '44px'],
+        'home-heading-small': ['28px', '34px'],
+        'home-heading-large': ['48px', '56px'],
+        'default': ['15px', '21px'],
+      },
+
+
+ChatGPT said:
+Sure! Since you're having trouble with custom font sizes in the tailwind.config.js, here's how you can replicate them using Tailwind's built-in utility classes (without touching the config file):
+
+You can use text-[size] and leading-[line-height] directly in your JSX components.
+
+✅ Replace these custom sizes:
+| Custom Class                        | Tailwind Equivalent          |
+| ----------------------------------- | ---------------------------- |
+| `text-course-details-heading-small` | `text-[26px] leading-[36px]` |
+| `text-course-details-heading-large` | `text-[36px] leading-[44px]` |
+| `text-home-heading-small`           | `text-[28px] leading-[34px]` |
+| `text-home-heading-large`           | `text-[48px] leading-[56px]` |
+| `text-default`                      | `text-[15px] leading-[21px]` |
+
+
+2) 
+gridTemplaterColumns:{
+    'auto': 'repeat(auto-fit, minmax(200px, 1fr))'
+  }
+
+  <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+  <div className="bg-gray-200 p-4">Item 1</div>
+  <div className="bg-gray-200 p-4">Item 2</div>
+  <div className="bg-gray-200 p-4">Item 3</div>
+</div>
+
+3) 'section-height' : '500px'
+
+4). 'course-card' : '[424px]'
+
+5). 'custom-card' : '[0px_4px_15px_2px_rgba(0,0,0,0.1)]'
+
+
+
