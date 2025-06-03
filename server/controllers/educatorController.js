@@ -40,7 +40,7 @@ export const addCourse = async (req, res) => {
         newCourse.courseThumbnail = imageUpload.secure_url
         await newCourse.save()
 
-        res.json({ success: true, message: "course Added" })
+        res.json({ success: true, message: "Course Added" })
 
     } catch (error) {
         res.json({ success: false, message: error.message })

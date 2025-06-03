@@ -21,12 +21,13 @@ export const getCourseId = async (req, res) => {
         courseData.courseContent.forEach(chapter => {
             chapter.chapterContent.forEach(lecture => {
                 if (!lecture.isPreviewFree) {
-                    lecture.lectureUrl = ''
+                    lecture.lectureUrl = '';
                 }
             })
         })
 
         res.json({ success: true, courseData })
+
     } catch (error) {
         res.json({ success: false, message: error.message })
     }

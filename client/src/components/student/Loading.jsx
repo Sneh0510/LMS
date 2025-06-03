@@ -3,17 +3,17 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 const Loading = () => {
 
-  const {path} = useParams()
-  const navigate = useNavigate()
+  // const {path} = useParams()
+  // const navigate = useNavigate()
 
-  useEffect(()=>{
-    if (path) {
-      const timer = setTimeout(()=>{
-        navigate(`/${path}`)
-      }, 5000)
-      return ()=> clearTimeout(timer)
-    }
-  },[])
+  // useEffect(()=>{
+  //   if (path) {
+  //     const timer = setTimeout(()=>{
+  //       navigate(`/${path}`)
+  //     }, 5000)
+  //     return ()=> clearTimeout(timer)
+  //   }
+  // },[])
 
   return (
     <div className='min-h-screen flex items-center justify-center'>
