@@ -11,7 +11,7 @@ const Navbar = () => {
 
   const { navigate, isEducator } = useContext(AppContext)
 
-  const location = useLocation(); // <-- useLocation hook
+  // const location = useLocation(); // <-- useLocation hook
   const isCourseListPage = location.pathname.includes('/course-list')
 
 

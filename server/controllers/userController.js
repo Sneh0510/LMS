@@ -8,8 +8,8 @@ import razorpay from 'razorpay';
 
 export const getUserData = async (req, res) => {
     try {
-        const userId = req.auth.userId
-        const user = await User.findById(userId)
+        const { userId } = req.auth();
+        const user = await User.findById(userId);
 
         if (!user) {
             return res.json({ success: false, message: 'User not found' })
@@ -27,7 +27,7 @@ export const getUserData = async (req, res) => {
 export const userEnrolledCourses = async (req, res) => {
     try {
 
-        const userId = req.auth.userId
+        const { userId } = req.auth();
         const userData = await User.findById(userId).populate('enrolledCourses')
 
         res.json({ success: true, enrolledCourses: userData.enrolledCourses })
@@ -36,62 +36,81 @@ export const userEnrolledCourses = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 }
-
+ 
 // Purchase Course
 export const purchaseCourse = async (req, res) => {
     try {
-        const { courseId } = req.body
-        const { origin } = req.headers
-        const userId = req.auth.userId
-        const userData = await User.findById(userId)
-        const courseData = await Course.findById(courseId)
+        const { courseId } = req.body;
+        const { origin } = req.headers;
+        const { userId } = req.auth();
+
+        // Fetch user and course data
+        const userData = await User.findById(userId);
+        const courseData = await Course.findById(courseId);
 
         if (!userData || !courseData) {
-            return res.json({ success: false, message: "Data Not Found" })
+            return res.json({ success: false, message: "Data Not Found" });
         }
 
+        // Calculate discounted amount
+        const amount = (
+            courseData.coursePrice - (courseData.discount * courseData.coursePrice) / 100
+        ).toFixed(2);
+
+        // Create purchase record in DB
         const purchaseData = {
             courseId: courseData._id,
             userId,
-            amount: (courseData.coursePrice - courseData.discount * courseData.coursePrice / 100).toFixed(2),
-        }
+            amount,
+        };
 
-        const newPurchase = await Purchase.create(purchaseData)
+        const newPurchase = await Purchase.create(purchaseData);
 
-        // razorpay gateway initialize
-        const razorpayInstance = new razorpay(process.env.RAZORPAY_KEY_SECRET)
+        // Razorpay initialization (✅ Corrected here)
+        const razorpayInstance = new razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
 
-        const currency = process.env.CURRENCY.toLowerCase()
+        const currency = (process.env.CURRENCY || "INR").toUpperCase();
 
-        // creating line item to for razorpay
-        const line_items = [{
-            price_data: {
-                currency,
-                product_data: {
-                    name: courseData.courseTitle
-                },
-                unit_amount: Math.floor(newPurchase.amount) * 100
+        // Razorpay order options
+        const options = {
+            amount: Math.floor(amount * 100), // convert to paisa
+            currency,
+            receipt: newPurchase._id.toString(),
+            payment_capture: 1,
+            notes: {
+                courseTitle: courseData.courseTitle,
+                purchaseId: newPurchase._id.toString(),
             },
-            quantity: 1
-        }]
+        };
 
-        const session = await razorpayInstance.checkout.sessions.create({
+        // Create order on Razorpay
+        const order = await razorpayInstance.orders.create(options);
+
+        // Send response to frontend
+        res.json({
+            success: true,
+            order: {
+                id: order.id,
+                amount: order.amount,
+                currency: order.currency,
+                receipt: order.receipt,
+                notes: order.notes,
+            },
+            razorpayKeyId: process.env.RAZORPAY_KEY_ID,
             success_url: `${origin}/loading/my-enrollments`,
             cancel_url: `${origin}/`,
-            line_items: line_items,
-            mode: 'payment',
-            metadata: {
-                purchaseId: newPurchase._id.toString()
-            }
-        })
-
-        res.json({ success: true, session_url: session.url })
-
+        });
 
     } catch (error) {
-        res.json({ success: false, message: error.message })
+        console.error("Purchase Course Error:", JSON.stringify(error, null, 2));
+        res.json({ success: false, message: error?.message || JSON.stringify(error) || "Something went wrong" });
     }
-}
+};
+
+
 
 // update use course Progress
 
