@@ -68,7 +68,11 @@ const StudentsEnrolled = () => {
                 <td className="px-4 py-3 truncate">{item.courseTitle}</td>
                 <td className="px-4 py-3 hidden sm:table-cell">
                   {item.purchaseDate && !isNaN(new Date(item.purchaseDate))
-                    ? new Date(item.purchaseDate).toLocaleDateString()
+                    ? new Date(item.purchaseDate).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
                     : "Invalid Date"}
                 </td>
               </tr>
