@@ -5,12 +5,10 @@ import { Purchase } from "../models/Purchase.js";
 import Course from "../models/Course.js";
 import { createHmac } from 'crypto';
 
-//api controller function to manage clerk user with database
-
+// Clerk Webhook
 export const clerkWebhooks = async (req, res) => {
   try {
     const whook = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-
     await whook.verify(JSON.stringify(req.body), {
       "svix-id": req.headers["svix-id"],
       "svix-timestamp": req.headers["svix-timestamp"],
@@ -50,39 +48,40 @@ export const clerkWebhooks = async (req, res) => {
       }
 
       default:
-        break;
+        res.status(400).json({ success: false, message: "Unhandled event type" });
     }
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Razorpay instance (you can keep it in case you want to use later, not needed for webhook directly)
+// Razorpay instance
 const razorpayInstance = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+// Razorpay Webhook
 export const razorWebhooks = async (req, res) => {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   const signature = req.headers["x-razorpay-signature"];
-  const payload = req.body; // if body is raw
-
-  // ✅ Verify Razorpay webhook signature
-  const expectedSignature = createHmac("sha256", secret)
-  .update(payload)
-  .digest("hex");
-
-
-  if (expectedSignature !== signature) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid signature" });
-  }
-
-  const event = req.body;
 
   try {
+    // Ensure req.body is a Buffer
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
+
+    const expectedSignature = createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
+
+    if (expectedSignature !== signature) {
+      return res.status(400).json({ success: false, message: "Invalid signature" });
+    }
+
+    const event = JSON.parse(rawBody.toString()); // Razorpay sends raw body
+
+    console.log("📨 Webhook Event:", event.event);
+
     switch (event.event) {
       case "payment.captured": {
         const payment = event.payload.payment.entity;
@@ -94,35 +93,34 @@ export const razorWebhooks = async (req, res) => {
         }
 
         const purchaseData = await Purchase.findById(purchaseId);
-        const userData = await User.findById(purchaseData?.userId);
-        const courseData = await Course.findById(purchaseData?.courseId);
+        if (!purchaseData) {
+          console.log("❌ Purchase data not found.");
+          break;
+        }
 
-        console.log("📦 Purchase:", purchaseData);
-        console.log("👤 User:", userData);
-        console.log("📚 Course:", courseData);
+        const userData = await User.findById(purchaseData.userId);
+        const courseData = await Course.findById(purchaseData.courseId);
 
-        if (!purchaseData || !userData || !courseData) {
-          return res
-            .status(400)
-            .json({ success: false, message: "Invalid data in webhook" });
+        if (!userData || !courseData) {
+          console.log("❌ Invalid user or course data.");
+          break;
         }
 
         if (!courseData.enrolledStudents.includes(userData._id)) {
           courseData.enrolledStudents.push(userData._id);
           await courseData.save();
-          console.log("✅ User added to course.");
+          console.log("✅ User enrolled in course.");
         }
 
         if (!userData.enrolledCourses.includes(courseData._id.toString())) {
           userData.enrolledCourses.push(courseData._id.toString());
           await userData.save();
-          console.log("✅ Course added to user.", userData.enrolledCourses);
+          console.log("✅ Course added to user.");
         }
 
         purchaseData.status = "completed";
         await purchaseData.save();
         console.log("✅ Purchase marked as completed.");
-
         break;
       }
 
@@ -131,7 +129,7 @@ export const razorWebhooks = async (req, res) => {
         const purchaseId = payment.notes?.purchaseId;
 
         if (!purchaseId) {
-          console.log("Purchase ID not found in failed payment notes.");
+          console.log("❌ Purchase ID not found in failed payment notes.");
           break;
         }
 
@@ -139,18 +137,19 @@ export const razorWebhooks = async (req, res) => {
         if (purchaseData) {
           purchaseData.status = "failed";
           await purchaseData.save();
+          console.log("❌ Purchase marked as failed.");
         }
 
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.event}`);
+        console.log(`⚠️ Unhandled event type: ${event.event}`);
     }
 
     res.status(200).json({ success: true, received: true });
   } catch (error) {
-    console.error("Webhook handler error:", error.message);
+    console.error("❌ Webhook Error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
