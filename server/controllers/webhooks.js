@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import Razorpay from "razorpay";
 import { Purchase } from "../models/Purchase.js";
 import Course from "../models/Course.js";
+import { createHmac } from 'crypto';
 
 //api controller function to manage clerk user with database
 
@@ -68,10 +69,10 @@ export const razorWebhooks = async (req, res) => {
   const payload = req.body; // if body is raw
 
   // ✅ Verify Razorpay webhook signature
-  const expectedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(payload)
-    .digest("hex");
+  const expectedSignature = createHmac("sha256", secret)
+  .update(payload)
+  .digest("hex");
+
 
   if (expectedSignature !== signature) {
     return res
