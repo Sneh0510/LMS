@@ -74,7 +74,7 @@
 #### 1. Clone the repository
 
 ```sh
-git clone https://github.com/yourusername/edemy-lms.git
+git clone https://github.com/Sneh0510/LMS.git
 cd LMS
 ```
 
