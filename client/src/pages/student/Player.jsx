@@ -8,6 +8,7 @@ import Footer from '../../components/student/Footer'
 import Rating from '../../components/student/Rating'
 import { toast } from 'react-toastify'
 import Loading from '../../components/student/Loading'
+import axios from 'axios'
 
 const Player = () => {
 
