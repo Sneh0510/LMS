@@ -56,7 +56,7 @@ export const clerkWebhooks = async (req, res) => {
   }
 };
 
-// Razorpay instance (not required here unless you're using it elsewhere)
+// Razorpay instance (you can keep it in case you want to use later, not needed for webhook directly)
 const razorpayInstance = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -65,9 +65,9 @@ const razorpayInstance = new Razorpay({
 export const razorWebhooks = async (req, res) => {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   const signature = req.headers["x-razorpay-signature"];
-  const payload = JSON.stringify(req.body);
+  const payload = req.body; // if body is raw
 
-  // Validate signature
+  // ✅ Verify Razorpay webhook signature
   const expectedSignature = crypto
     .createHmac("sha256", secret)
     .update(payload)
@@ -85,35 +85,54 @@ export const razorWebhooks = async (req, res) => {
     switch (event.event) {
       case "payment.captured": {
         const payment = event.payload.payment.entity;
-        const purchaseId = payment.notes.purchaseId;
+        const purchaseId = payment.notes?.purchaseId;
 
-        const purchaseData = await Purchase.findById(purchaseId);
-        const userData = await User.findById(purchaseData.userId);
-        const courseData = await Course.findById(
-          purchaseData.courseId.toString()
-        );
-
-        if (!purchaseData || !userData || !courseData) {
-          console.log("Invalid data during webhook handling");
+        if (!purchaseId) {
+          console.log("❌ Purchase ID not found in payment notes.");
           break;
         }
 
-        // Enroll user
-        courseData.enrolledStudents.push(userData._id);
-        await courseData.save();
+        const purchaseData = await Purchase.findById(purchaseId);
+        const userData = await User.findById(purchaseData?.userId);
+        const courseData = await Course.findById(purchaseData?.courseId);
 
-        userData.enrolledCourses.push(courseData._id);
-        await userData.save();
+        console.log("📦 Purchase:", purchaseData);
+        console.log("👤 User:", userData);
+        console.log("📚 Course:", courseData);
+
+        if (!purchaseData || !userData || !courseData) {
+          return res
+            .status(400)
+            .json({ success: false, message: "Invalid data in webhook" });
+        }
+
+        if (!courseData.enrolledStudents.includes(userData._id)) {
+          courseData.enrolledStudents.push(userData._id);
+          await courseData.save();
+          console.log("✅ User added to course.");
+        }
+
+        if (!userData.enrolledCourses.includes(courseData._id.toString())) {
+          userData.enrolledCourses.push(courseData._id.toString());
+          await userData.save();
+          console.log("✅ Course added to user.", userData.enrolledCourses);
+        }
 
         purchaseData.status = "completed";
         await purchaseData.save();
+        console.log("✅ Purchase marked as completed.");
 
         break;
       }
 
       case "payment.failed": {
         const payment = event.payload.payment.entity;
-        const purchaseId = payment.notes.purchaseId;
+        const purchaseId = payment.notes?.purchaseId;
+
+        if (!purchaseId) {
+          console.log("Purchase ID not found in failed payment notes.");
+          break;
+        }
 
         const purchaseData = await Purchase.findById(purchaseId);
         if (purchaseData) {

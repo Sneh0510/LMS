@@ -2,6 +2,7 @@ import { clerkClient } from "@clerk/express";
 import Course from "../models/Course.js";
 import { v2 as cloudinary } from "cloudinary";
 import { Purchase } from "../models/Purchase.js";
+import User from "../models/User.js";
 
 // update role to educator
 export const updateRoleToEducator = async (req, res) => {
@@ -58,15 +59,15 @@ export const getEducatorCourses = async (req, res) => {
 
 // get educator dashboard data ( total earning, enrolled students, No. of courses )
 
-export const educatorDashboardData = async () => {
+export const educatorDashboardData = async (req, res) => {
   try {
-    const educator = req.auth.userId;
+    const educator = req.auth.userId; // make sure auth middleware sets this properly
     const courses = await Course.find({ educator });
     const totalCourses = courses.length;
 
     const courseIds = courses.map((course) => course._id);
 
-    // calculate total earning from purchases
+    // calculate total earnings from purchases
     const purchases = await Purchase.find({
       courseId: { $in: courseIds },
       status: "completed",
@@ -78,7 +79,6 @@ export const educatorDashboardData = async () => {
     );
 
     // collect unique enrolled student Ids with their course titles
-
     const enrolledStudentsData = [];
     for (const course of courses) {
       const students = await User.find(
@@ -105,9 +105,11 @@ export const educatorDashboardData = async () => {
       },
     });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("Dashboard error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // get enrolled students data with purchase data
 export const getEnrolledStudentsData = async (req, res) => {
