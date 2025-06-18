@@ -28,6 +28,10 @@ app.use("/api/educator", express.json(), educatorRouter);
 app.use("/api/course", express.json(), courseRouter);
 app.use("/api/user", express.json(), userRouter);
 app.post('/api/webhook/razorpay', bodyParser.raw({ type: 'application/json' }), razorWebhooks);
+app.get("/api/test", (req, res) => {
+  res.send("Test route works!");
+});
+
 
 const PORT = process.env.PORT || 5000;
 
