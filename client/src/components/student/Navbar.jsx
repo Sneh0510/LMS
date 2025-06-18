@@ -19,25 +19,30 @@ const Navbar = () => {
   const { user } = useUser()
 
   const becomeEducator = async () => {
-    try {
-      if (isEducator) {
-        navigate('/educator')
-        return;
-      }
-      const token = await getToken()
-      const {data} = await axios(backendUrl + '/api/educator/update-role', {headers:{Authorization:`Bearer ${token}`}}) 
-
-      if (data.success) {
-        setIsEducator(true)
-        toast.success(data.message)
-      } else {
-        toast.error(data.message)
-      }
-
-    } catch (error) {
-      toast.error(error.message)
+  try {
+    if (isEducator) {
+      navigate('/educator');
+      return;
     }
+
+    const token = await getToken(); // Clerk session token
+    const { data } = await axios.post(
+      backendUrl + '/api/user/become-educator',
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (data.success) {
+      setIsEducator(true);
+      toast.success(data.message);
+    } else {
+      toast.error(data.message);
+    }
+  } catch (error) {
+    toast.error(error.message);
   }
+};
+
 
   return (
     <div className={`flex items-center justify-between px-4 sm:px-10 md:px-14 lg:px-36 border-b border-gray-500 py-4 ${isCourseListPage ? 'bg-white' : 'bg-cyan-100/70'}`}>

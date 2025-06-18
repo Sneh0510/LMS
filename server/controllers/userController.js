@@ -4,22 +4,34 @@ import User from "../models/User.js"
 import { Purchase } from "../models/Purchase.js";
 import razorpay from 'razorpay';
 import mongoose from "mongoose";
+import { clerkClient } from "@clerk/express";
 
 // get user data
 
 export const getUserData = async (req, res) => {
-    try {
-        const { userId } = req.auth();
-        const user = await User.findById(userId);
+  try {
+    const { userId } = req.auth();
+    const user = await User.findById(userId).lean();
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        res.json({ success: true, user });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    const userInfo = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      imageUrl: user.imageUrl,
+      role: user.role,
+      enrolledCourses: user.enrolledCourses || [],
+      uploadedCourses: user.uploadedCourses || [],
+      totalEarnings: user.totalEarnings || 0,
+    };
+
+    res.status(200).json({ success: true, user: userInfo });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // user enrolled course with lecture links
@@ -44,21 +56,25 @@ export const userEnrolledCourses = async (req, res) => {
 // update the role of the user
 export const becomeEducator = async (req, res) => {
   try {
-    const userId = req.auth.userId; // from Clerk middleware
+    const { userId } = req.auth();
 
+    // 1. Update role in Clerk
+    await clerkClient.users.updateUser(userId, {
+      publicMetadata: {
+        role: "educator",
+      },
+    });
+
+    // 2. Update role in your DB
     const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     user.role = "educator";
-    user.uploadedCourses = user.uploadedCourses || [];
-    user.totalEarnings = user.totalEarnings || 0;
-
+    user.uploadedCourses = [];
+    user.totalEarnings = 0;
     await user.save();
 
-    res.status(200).json({ success: true, message: "Role updated to educator", user });
+    res.status(200).json({ success: true, message: "You are now an educator!" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

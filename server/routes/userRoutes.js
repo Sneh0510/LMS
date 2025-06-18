@@ -1,7 +1,6 @@
 import express from 'express'
 import {  addUserRating, becomeEducator, getUserCourseProgress, getUserData, purchaseCourse, updateUserCourseProgress, userEnrolledCourses } from '../controllers/userController.js'
 import { requireAuth } from '@clerk/express'
-
 const userRouter = express.Router()
 
 userRouter.get('/data' , getUserData)
