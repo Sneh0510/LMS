@@ -8,29 +8,31 @@ import { clerkClient } from "@clerk/express";
 
 // get user data
 
-export const getUserData = async (req, res) => {
+export const clerkWebhooks = async (req, res) => {
   try {
-    const { userId } = req.auth();
-    const user = await User.findById(userId).lean();
+    const evt = req.body;
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+    if (evt.type === "user.created") {
+      const { id, email_addresses, image_url, first_name, last_name } = evt.data;
+
+      const existingUser = await User.findById(id);
+      if (!existingUser) {
+        await User.create({
+          _id: id,
+          email: email_addresses[0].email_address,
+          name: `${first_name || ''} ${last_name || ''}`.trim(), // ✅ full name
+          imageUrl: image_url,
+          role: "student", // default
+          enrolledCourses: [],
+          uploadedCourses: [],
+          totalEarnings: 0
+        });
+      }
     }
-
-    const userInfo = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      imageUrl: user.imageUrl,
-      role: user.role,
-      enrolledCourses: user.enrolledCourses || [],
-      uploadedCourses: user.uploadedCourses || [],
-      totalEarnings: user.totalEarnings || 0,
-    };
-
-    res.status(200).json({ success: true, user: userInfo });
+    res.status(200).send("Webhook processed successfully");
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Webhook Error:", error);
+    res.status(500).send("Internal Server Error");
   }
 };
 
