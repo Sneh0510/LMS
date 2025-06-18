@@ -26,7 +26,7 @@ const Navbar = () => {
     }
 
     const token = await getToken(); // Clerk session token
-    const { data } = await axios.post(
+    const { data } = await axios.put(
       backendUrl + '/api/user/become-educator',
       {},
       { headers: { Authorization: `Bearer ${token}` } }
