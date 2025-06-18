@@ -3,7 +3,7 @@ import User from "../models/User.js";
 import Razorpay from "razorpay";
 import { Purchase } from "../models/Purchase.js";
 import Course from "../models/Course.js";
-import { createHmac } from 'crypto';
+import { createHmac } from "crypto";
 
 // Clerk Webhook
 export const clerkWebhooks = async (req, res) => {
@@ -19,12 +19,19 @@ export const clerkWebhooks = async (req, res) => {
 
     switch (type) {
       case "user.created": {
+        const role = data.public_metadata?.role || "student"; // default to student
+
         const userData = {
           _id: data.id,
           email: data.email_addresses[0].email_address,
           name: data.first_name + " " + data.last_name,
           imageUrl: data.image_url,
+          role: role,
+          ...(role === "student"
+            ? { enrolledCourses: [] }
+            : { uploadedCourses: [], totalEarnings: 0 }),
         };
+
         await User.create(userData);
         res.json({});
         break;
@@ -48,7 +55,9 @@ export const clerkWebhooks = async (req, res) => {
       }
 
       default:
-        res.status(400).json({ success: false, message: "Unhandled event type" });
+        res
+          .status(400)
+          .json({ success: false, message: "Unhandled event type" });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -68,14 +77,18 @@ export const razorWebhooks = async (req, res) => {
 
   try {
     // Ensure req.body is a Buffer
-    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(JSON.stringify(req.body));
 
     const expectedSignature = createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex");
 
     if (expectedSignature !== signature) {
-      return res.status(400).json({ success: false, message: "Invalid signature" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid signature" });
     }
 
     const event = JSON.parse(rawBody.toString()); // Razorpay sends raw body

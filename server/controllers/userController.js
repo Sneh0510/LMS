@@ -13,30 +13,34 @@ export const getUserData = async (req, res) => {
         const user = await User.findById(userId);
 
         if (!user) {
-            return res.json({ success: false, message: 'User not found' })
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        res.json({ success: true, user })
-
+        res.json({ success: true, user });
     } catch (error) {
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: error.message });
     }
-}
+};
 
 // user enrolled course with lecture links
 
 export const userEnrolledCourses = async (req, res) => {
-    try {
+  try {
+    const { userId } = req.auth();
 
-        const { userId } = req.auth();
-        const userData = await User.findById(userId).populate('enrolledCourses')
+    const userData = await User.findById(userId).populate('enrolledCourses');
 
-        res.json({ success: true, enrolledCourses: userData.enrolledCourses })
-
-    } catch (error) {
-        res.json({ success: false, message: error.message })
+    if (!userData) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-}
+
+    res.json({ success: true, enrolledCourses: userData.enrolledCourses });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
  
 // Purchase Course
 export const purchaseCourse = async (req, res) => {
