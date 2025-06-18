@@ -41,6 +41,28 @@ export const userEnrolledCourses = async (req, res) => {
   }
 };
 
+// update the role of the user
+export const becomeEducator = async (req, res) => {
+  try {
+    const userId = req.auth.userId; // from Clerk middleware
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    user.role = "educator";
+    user.uploadedCourses = user.uploadedCourses || [];
+    user.totalEarnings = user.totalEarnings || 0;
+
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Role updated to educator", user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
  
 // Purchase Course
 export const purchaseCourse = async (req, res) => {

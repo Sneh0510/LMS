@@ -1,67 +1,93 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext } from 'react'
+import { assets } from '../../assets/assets'
+import { Link, useLocation } from 'react-router-dom'
+import { useClerk, UserButton, useUser } from '@clerk/clerk-react'
 import { AppContext } from '../../context/AppContext'
-import Loading from '../../components/student/Loading'
-import { toast } from 'react-toastify'
 import axios from 'axios'
+import { toast } from 'react-toastify'
 
-const MyCourses = () => {
+const Navbar = () => {
+  const { navigate, isEducator, backendUrl, setIsEducator, getToken } = useContext(AppContext)
+  const { openSignIn } = useClerk()
+  const { user } = useUser()
 
-  const {currency, backendUrl, isEducator, getToken} = useContext(AppContext)
+  const location = useLocation(); // ✅ FIXED: move this above
+  const isCourseListPage = location.pathname.includes('/course-list')
 
-  const [courses, setCourses] = useState(null)
- 
-  const fetchEducatorCourses = async () => {
-    // setCourses(allCourses)
+  // ✅ BECOME EDUCATOR LOGIC
+  const becomeEducator = async () => {
     try {
-      const token = await getToken()
-      const { data } = await axios.get(backendUrl + '/api/educator/courses', {headers: { Authorization: `Bearer ${token}` }})
-      
-      data.success && setCourses(data.courses)
+      if (isEducator) {
+        navigate('/educator')
+        return
+      }
 
+      const token = await getToken()
+      const { data } = await axios.post(backendUrl + '/api/user/become-educator', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      if (data.success) {
+        setIsEducator(true)
+        toast.success(data.message)
+        navigate('/educator') // ✅ Redirect to dashboard after role update
+      } else {
+        toast.error(data.message)
+      }
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.response?.data?.message || error.message)
     }
   }
 
-  useEffect(()=> {
-    if(isEducator){
-      fetchEducatorCourses()
-    }
-  },[isEducator])
-
-  return courses ? (
-    <div className='h-screen flex flex-col items-start justify-between md:p-8 md:pb-0 p-4 pt-8 pb-0'>
-      <div className='w-full'>
-        <h2 className='pb-4 text-lg font-medium'>My courses</h2>
-        <div className='flex flex-col items-center max-w-4xl w-full overflow-hidden rounded-md bg-white border border-gray-500/20'>
-          <table className='md:table-auto table-fixed w-full overflow-hidden'>
-            <thead className='text-gray-900 border-b border-gray-500/20 text-sm text-left'>
-              <tr>
-                <th className='px-4 py-3 font-semibold  truncate'>All Courses</th>
-                <th className='px-4 py-3 font-semibold text-center truncate'>Earnings</th>
-                <th className='px-4 py-3 font-semibold text-center truncate'>Students</th>
-                <th className='px-4 py-3 font-semibold text-center truncate'>Published On</th>
-              </tr>
-            </thead>
-            <tbody className='text-sm text-gray-500'>
-              {courses.map((course)=> (
-                <tr key={course._id} className='border-b border-gray-500/20'>
-                  <td className='md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 truncate text-center'>
-                    <img src={course.courseThumbnail} alt="Course Image" className='w-16'/>
-                    <span className='truncate hidden md:block'>{course.courseTitle}</span>
-                  </td>
-                  <td className='px-4 py-3 text-center'>{currency} {Math.floor(course.enrolledStudents.length * (course.coursePrice - course.discount * course.coursePrice / 100))}</td>
-                  <td className='px-4 py-3 text-center'>{course.enrolledStudents.length}</td>
-                  <td className='px-4 py-3 text-center'>{new Date(course.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-
-            </tbody>
-          </table>
+  return (
+    <div className={`flex items-center justify-between px-4 sm:px-10 md:px-14 lg:px-36 border-b border-gray-500 py-4 ${isCourseListPage ? 'bg-white' : 'bg-cyan-100/70'}`}>
+      <img onClick={() => navigate('/')} src={assets.logo} alt="" className='w-28 lg:w-32 cursor-pointer' />
+      
+      {/* Desktop */}
+      <div className='hidden md:flex items-center gap-5 text-gray-500'>
+        <div className='flex items-center gap-5'>
+          {user && (
+            <>
+              <button onClick={becomeEducator}>
+                {isEducator ? 'Educator Dashboard' : 'Become Educator'}
+              </button>
+              | <Link to='/my-enrollments'>My Enrollments</Link>
+            </>
+          )}
         </div>
+        {user ? (
+          <UserButton />
+        ) : (
+          <button onClick={openSignIn} className='bg-blue-600 text-white px-5 py-2 rounded-full'>
+            Create Account
+          </button>
+        )}
+      </div>
+
+      {/* Mobile */}
+      <div className='md:hidden flex items-center gap-2 sm:gap-2 text-gray-500'>
+        <div className='flex items-center gap-1 sm:gap-2 max-sm:text-xs'>
+          {user && (
+            <>
+              <button onClick={becomeEducator}>
+                {isEducator ? 'Educator Dashboard' : 'Become Educator'}
+              </button>
+              | <Link to='/my-enrollments'>My Enrollments</Link>
+            </>
+          )}
+        </div>
+        {user ? (
+          <UserButton />
+        ) : (
+          <button onClick={openSignIn}>
+            <img src={assets.user_icon} alt="" />
+          </button>
+        )}
       </div>
     </div>
-  ) : <Loading />
+  )
 }
 
-export default MyCourses
+export default Navbar
