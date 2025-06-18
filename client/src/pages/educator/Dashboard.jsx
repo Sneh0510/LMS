@@ -47,7 +47,7 @@ const Dashboard = () => {
               <p className="text-2xl font-medium text-gray-600">
                 {dashboardData.enrolledStudentsData.length}
               </p>
-              <p className="text-base text-gray-500">Total Enrolments</p>
+              <p className="text-base text-gray-500">Total Enrollments</p>
             </div>
           </div>
 
@@ -75,7 +75,7 @@ const Dashboard = () => {
             />
             <div>
               <p className="text-2xl font-medium text-gray-600 whitespace-nowrap">
-                {currency} {dashboardData.totalEarnings}
+                {currency} {dashboardData.totalEarnings.toFixed(2)}
               </p>
               <p className="text-base text-gray-500">Total Earnings</p>
             </div>
@@ -83,7 +83,7 @@ const Dashboard = () => {
         </div>
 
         <div>
-          <h2 className="pb-4 text-lg font-medium">Latest Enrolments</h2>
+          <h2 className="pb-4 text-lg font-medium">Latest Enrollments</h2>
           <div className="flex flex-col items-center max-w-4xl w-full overflow-hidden rounded-md bg-white border border-gray-500/20">
             <table className="table-fixed md:table-auto w-full overflow-hidden">
               <thead className="text-gray-900 border-b border-gray-500/20 text-sm text-left">
