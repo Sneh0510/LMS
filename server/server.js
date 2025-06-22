@@ -18,7 +18,10 @@ await connnectDB();
 await connectCloudinary();
 
 //middleware
-app.use(cors());
+app.use(cors({
+  origin: 'https://lms-sepia-phi.vercel.app', // ✅ Your frontend on Vercel
+  credentials: true // ✅ If using cookies or auth headers
+}));
 app.use(clerkMiddleware());
 
 //routes
