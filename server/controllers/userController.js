@@ -8,7 +8,7 @@ import { clerkClient } from "@clerk/express";
 
 // get user data
 
-export const clerkWebhooks = async (req, res) => {
+export const getUserData = async (req, res) => {
   try {
     const evt = req.body;
 
