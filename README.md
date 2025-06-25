@@ -142,7 +142,7 @@ Visit [http://localhost:5173](http://localhost:5173) to view the app.
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
